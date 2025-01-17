@@ -34,4 +34,3 @@ test:  ## Test code using pytest.
 		@printf "\033[1;34mRunning tests with pytest...\033[0m\n\n"
 		pytest -v rs_tools
 		@printf "\033[1;34mPyTest passes!\033[0m\n\n"
-##test

@@ -1,22 +1,20 @@
+
 from __future__ import annotations
 
 import gc
-import os
+import os, glob
 from dataclasses import dataclass
 from pathlib import Path
+
 
 import numpy as np
 import typer
 import xarray as xr
 from loguru import logger
-#from rs_tools._src.utils.io import get_list_filenames
+import autoroot
+#from rs_tools.rs_tools._src.utils.io import get_list_filenames
 from tqdm import tqdm
 from xrpatcher._src.base import XRDAPatcher
-import glob
-from affine import Affine
-import pyproj
-import rasterio
-from rasterio.transform import from_origin
 
 def get_list_filenames(data_path: str="./", ext: str="*"):
     """
@@ -184,7 +182,6 @@ class PrePatcher:
                         ipatch.attrs["band_names"] = band_names
                         # save patch to tiff
                         ipatch.rio.to_raster(file_path)
-                        
                     elif self.save_filetype == "np":
                         # save as numpy files
                         np.save(
@@ -281,10 +278,17 @@ def prepatch(
 
     logger.info(f"Finished Prepatching Script...!")
 
+read_path = '/home/sgirtsou/Projects/AND/'
+save_path = '/home/sgirtsou/Projects/AND/patched'
+patch_size = 128
+stride_size = 128
+nan_cutoff = 0.8
+save_filetype = "nc"
 
-if __name__ == "__main__":
-    """
-    python scripts/pipeline/prepatch.py --read-path "/path/to/netcdf/file" --save-path /path/to/save/patches
-    """
-    prepatch(read_path = '/mnt/nvme2tb/AND/debug_patcher/geoprocessed', save_path='/mnt/nvme2tb/AND/debug_patcher/patched', patch_size=32, stride_size=32, nan_cutoff=0.5, save_filetype='tif')
- #   typer.run(prepatch)
+prepatch(read_path,
+    save_path,
+    patch_size,
+    stride_size,
+    nan_cutoff,
+    save_filetype,
+)

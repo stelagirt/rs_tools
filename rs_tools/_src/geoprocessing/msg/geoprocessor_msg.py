@@ -359,7 +359,7 @@ def geoprocess(
     logger.info(f"Initializing MSG GeoProcessor...")
     # Extracting region from str
     if region is not None:
-        region = tuple(map(lambda x: int(x), region.split(" ")))
+        region = tuple(map(lambda x: float(x), region.split(" ")))
 
     msg_geoprocessor = MSGGeoProcessing(
         resolution=resolution, 
@@ -369,7 +369,7 @@ def geoprocess(
         resample_method=resample_method
         )
     logger.info(f"GeoProcessing Files...")
-    msg_geoprocessor.preprocess_files(skip_if_exists=skip_if_exists)
+    msg_geoprocessor.preprocess_files(skip_if_exists=skip_existing) #Stella
 
     logger.info(f"Finished MSG GeoProcessing Script...!")
 

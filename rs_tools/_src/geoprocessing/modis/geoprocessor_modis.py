@@ -274,7 +274,7 @@ class MODISGeoProcessing:
             ds.to_netcdf(save_filename, engine="netcdf4")
 
 def geoprocess(
-        satellite: str,
+        satellite: str = "aqua",
         read_path: str = "./",
         save_path: str = "./",
         skip_if_exists: bool = True
@@ -293,7 +293,7 @@ def geoprocess(
     """
     # Initialize MODIS GeoProcessor
     logger.info(f"Initializing {satellite.upper()} GeoProcessor...")
-    logger.debug(f"PATHH: {read_path}")
+    logger.debug(f"PATH: {read_path}")
     modis_geoprocessor = MODISGeoProcessing(
         satellite=satellite, 
         read_path=read_path, 
@@ -310,11 +310,14 @@ if __name__ == '__main__':
     # =========================
     # Test Cases
     # =========================
-    python geoprocessor_modis.py --satellite aqua --read-path "/home/data" --save-path /home/data/modis/geoprocessed
+    python geoprocessor_modis.py --SATELLITE aqua --read-path "/home/data" --save-path /home/data/modis/geoprocessed
     python geoprocessor_modis.py --satellite terra --read-path "/home/data" --save-path /home/data/modis/geoprocessed
     
     # =========================
     # FAILURE TEST CASES
     # =========================
     """
-    typer.run(geoprocess)
+    #typer.run(geoprocess)
+    geoprocess(satellite = "aqua",
+        read_path =  "/mnt/nvme2tb/aggelos_test_clouds/modis/",
+        save_path =  "/mnt/nvme2tb/aggelos_test_clouds/modis/geoprocessed")

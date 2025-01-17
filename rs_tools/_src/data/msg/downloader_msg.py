@@ -4,7 +4,7 @@ from pathlib import Path
 from dataclasses import dataclass
 from typing import List
 
-from rs_tools import msg_download
+from download import msg_download
 
 import typer
 from loguru import logger
@@ -28,7 +28,7 @@ class MSGDownload:
             start_time=self.start_time,
             end_time=self.end_time,
             daily_window_t0=self.daily_window_t0, 
-            daily_window_t1=self.daily_window_t1, 
+            daily_window_t1=self.daily_window_t1,
             time_step=self.time_step,
             satellite="MSG",
             save_dir=Path(self.save_dir).joinpath("L1b"),
@@ -52,7 +52,6 @@ class MSGDownload:
             processing_level='L1',
         )
         return msg_files
-    
 
 def download(
         start_date: str="2020-10-02",

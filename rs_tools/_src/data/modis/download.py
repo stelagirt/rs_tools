@@ -22,7 +22,7 @@ def modis_download(
     earthdata_username: Optional[str]="",
     earthdata_password: Optional[str]="",
     day_night_flag: Optional[str]=None, 
-    identifier: Optional[str] = "02"
+    identifier: Optional[str] = "02",
 ):
     """
     Downloads MODIS satellite data for a specified time period and location.
@@ -41,7 +41,7 @@ def modis_download(
         earthdata_username (str): Username associated with the NASA Earth Data login. Required for download.
         earthdata_password (str): Password associated with the NASA Earth Data login. Required for download.
         day_night_flag (str, optional): The time of day for the data. Options are "day" and "night". If not provided, both day and night data will be downloaded.
-        identifier (str, optional): The MODIS data product identifier. Options are "02" and "35". Default is "02".
+        identifier (str, optional): The MODIS data product identifier. Options are "02" for original L1B, "35" for Cloud Mask and "14" for fire mask. Default is "02".
     Returns:
         list: A list of file paths for the downloaded files.
         
@@ -82,7 +82,7 @@ def modis_download(
 
     """
     # check if earthdata login is available
-    _check_earthdata_login(earthdata_username=earthdata_username, earthdata_password=earthdata_password)
+    #_check_earthdata_login(earthdata_username=earthdata_username, earthdata_password=earthdata_password) # TODO - uncomment when function is implemented
 
     # check if netcdf4 backend is available
     _check_netcdf4_backend()
@@ -97,10 +97,12 @@ def modis_download(
     # check data product
     if processing_level == 'L1b':
         data_product = f"{satellite_code}{identifier}{resolution_code}"
-    elif processing_level == 'L2':
+    elif processing_level == 'L2' and identifier == '35': #for cloudmask
         # TODO: Implement other level-2 products or allow passing in data_product?
         # NOTE: Resolution argument not needed for cloud mask download
         data_product = f"{satellite_code}{identifier}_{processing_level}"
+    elif processing_level == 'L2' and identifier == '14': #for active fires
+        data_product = f"{satellite_code}{identifier}"
     else:
         raise ValueError("Incorrect processing level, downloader only implemented for 'L1b' and 'L2'")
     
@@ -164,7 +166,6 @@ def modis_download(
 
         # search for data
         results_day = earthaccess.search_data(**search_params)
-
         # check if any results were returned
         if not results_day:
             # if not: log warning and continue to next date
@@ -238,7 +239,7 @@ def _check_input_processing_level(processing_level: str) -> bool:
         raise ValueError(msg)
     
 def _check_identifier(identifier: str) -> bool:
-    if identifier in ["02", "35"]:
+    if identifier in ["02", "35", "14"]:
         return True
     else:
         msg = "Unrecognized data identifier"
@@ -269,7 +270,7 @@ def _check_resolution(resolution: str) -> str:
     
 def _check_data_product_name(data_product: str) -> bool:
     if data_product in ['MOD021KM', 'MOD02HKM', 'MOD02QKM', 'MYD021KM', 'MYD02HKM', 'MYD02QKM',
-                        'MOD35_L2', 'MYD35_L2']:
+                        'MOD35_L2', 'MYD35_L2', 'MOD14', 'MYD14']:
         return True
     else:
         msg = "Unrecognized data product"
@@ -347,7 +348,18 @@ def _check_day_night_flag(day_night_flag: str) -> bool:
 
 if __name__ == '__main__':
     typer.run(modis_download)
-
+    '''
+    modis_download(start_date = '2023-08-21', 
+                   end_date= '2023-08-21',
+                   start_time = '10:00:00',
+                   end_time = '10:30:00',
+                   satellite=  'Terra',
+                   save_dir= './data/',
+                   processing_level= 'L2',
+                   resolution= '1KM',
+                   identifier= '14',
+                   )
+'''
     """
     # one day - successfully downloaded 4 granules (all nighttime)
     python scripts/modis-download.py 2018-10-01 --start-time 08:00:00 --end-time 8:10:00 --save-dir ./notebooks/modisdata/test_script/

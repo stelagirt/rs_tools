@@ -23,6 +23,7 @@ class MODISAquaDownload:
     end_time: str
     save_dir: str
     bounding_box: tuple[float, float, float, float]
+
     
     def download(self) -> List[str]:
         aqua_files = modis_download(
@@ -57,6 +58,23 @@ class MODISAquaDownload:
             identifier= "35"
             )
         return aqua_files
+ 
+    def download_fire_mask(self) -> List[str]:
+        aqua_files = modis_download(
+            start_date=self.start_date,
+            end_date=self.end_date,
+            start_time=self.start_time, 
+            end_time=self.end_time,
+            day_step=1,
+            satellite="Aqua",
+            save_dir=Path(self.save_dir).joinpath("AF"),
+            processing_level='L2',
+            resolution="1KM",
+            bounding_box=self.bounding_box,
+            day_night_flag="day",
+            identifier= "14"
+            )
+        return aqua_files
 
 
 def download(
@@ -66,7 +84,8 @@ def download(
         end_time: str = "21:00:00",
         save_dir: str = "./data/",
         region: str = "-130 -15 -90 5",
-        cloud_mask: bool = True
+        cloud_mask: bool = True,
+        fire_mask: bool = True
 ):
     """
     Downloads AQUA MODIS data including cloud mask
@@ -79,6 +98,7 @@ def download(
         save_dir (str): The directory path to save the downloaded files.
         region (str, optional): The geographic region to download files for in the format "min_lon min_lat max_lon max_lat".
         cloud_mask (bool, optional): Whether to download the cloud mask data (default: True).
+        fire_mask (bool, optional): Whether to download the fire mask data (default: True).
 
     Returns:
         None
@@ -100,6 +120,10 @@ def download(
     if cloud_mask:
         logger.info("Downloading AQUA Cloud Mask...")
         modis_filenames = dc_aqua_download.download_cloud_mask()
+        logger.info("Done!")
+    if fire_mask:
+        logger.info("Downloading AQUA Fire Mask...")
+        modis_filenames = dc_aqua_download.download_fire_mask()
         logger.info("Done!")
 
     logger.info("Finished AQUA Downloading Script...")

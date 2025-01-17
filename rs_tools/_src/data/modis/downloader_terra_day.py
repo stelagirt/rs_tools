@@ -57,6 +57,23 @@ class MODISTerraDownload:
             identifier= "35"
             )
         return terra_files
+    
+    def download_fire_mask(self) -> List[str]:
+        aqua_files = modis_download(
+            start_date=self.start_date,
+            end_date=self.end_date,
+            start_time=self.start_time, 
+            end_time=self.end_time,
+            day_step=1,
+            satellite="Terra",
+            save_dir=Path(self.save_dir).joinpath("AF"),
+            processing_level='L2',
+            resolution="1KM",
+            bounding_box=self.bounding_box,
+            day_night_flag="day",
+            identifier= "14"
+            )
+        return aqua_files
 
 
 def download(

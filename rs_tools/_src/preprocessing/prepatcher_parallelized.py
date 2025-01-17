@@ -8,6 +8,7 @@ from pathlib import Path
 import numpy as np
 import typer
 import xarray as xr
+import multiprocessing
 from loguru import logger
 #from rs_tools._src.utils.io import get_list_filenames
 from tqdm import tqdm
@@ -65,6 +66,29 @@ def _check_nan_count(arr: np.array, nan_cutoff: float) -> bool:
         return True
     else:
         return False
+    
+def check_cloud_sea_count(arr: np.array, cloud_sea_cutoff_value: float) -> bool:
+    """
+    Check if the number of NaN values in the given array is below a specified cutoff.
+
+    Parameters:
+        arr (np.array): The input array to check for NaN values.
+        cloud_sea_cutoff (float): The maximum allowed ratio of cloud and sea values to the total number of values.
+
+    Returns:
+        bool: True if the number of cloud and sea values is below the cutoff, False otherwise.
+    """
+    arr = arr[-3,:,:]
+    cloud_count = np.count_nonzero(arr == 0)
+    sea_count = np.count_nonzero(arr == 2)
+    nan_count = np.count_nonzero(arr == 3)
+    total_count = int(arr.size)
+    pct_nan = (sea_count+cloud_count+nan_count) / total_count
+
+    if pct_nan <= cloud_sea_cutoff_value:
+        return True
+    else:
+        return False
 
 
 @dataclass(frozen=True)
@@ -78,6 +102,7 @@ class PrePatcher:
         patch_size (int): The size of each patch.
         stride_size (int): The stride size for generating patches.
         nan_cutoff (float): The cutoff value for allowed NaN count in a patch.
+        cloud_sea_cutoff (float): The cutoff value for allowed cloud and sea count in a patch.
         save_filetype (str): The file type to save patches as. Options are [nc, np, npz, tif].
 
     Methods:
@@ -90,6 +115,7 @@ class PrePatcher:
     patch_size: int
     stride_size: int
     nan_cutoff: float
+    cloud_sea_cutoff: float
     save_filetype: str
 
     @property
@@ -104,12 +130,13 @@ class PrePatcher:
         files = get_list_filenames(self.read_path, ".nc")
         return files
 
-    def save_patches(self):
+    def save_patches(self, files: list[str] = None):
         """
         Preprocesses and saves patches from the NetCDF files.
         """
-        pbar = tqdm(self.nc_files)
-
+        #pbar = tqdm(self.nc_files)
+        pbar = tqdm(files)
+        
         for ifile in pbar:
             # extract & log timestamp
             itime = str(Path(ifile).name).split("_")[0]
@@ -151,95 +178,97 @@ class PrePatcher:
                 data = ipatch.data  # extract data
                 # logger.info(f'stride size {self.stride_size} ')
                 if _check_nan_count(data, self.nan_cutoff):
-                    if self.save_filetype == "nc":
-                        # reconvert to dataset to attach band_wavelength and time
-                        ipatch = ipatch.to_dataset(name="Rad")
-                        ipatch = ipatch.assign_coords({"time": ds.time.values})
-                        ipatch = ipatch.assign_coords(
-                            {"band_wavelength": ds.band_wavelength.values}
-                        )
-                        # compile filename
-                        file_path = Path(self.save_path).joinpath(
-                            f"{itime}_patch_{i}.nc"
-                        )
-                        # remove file if it already exists
-                        if os.path.exists(file_path):
-                            os.remove(file_path)
-                        # save patch to netcdf
-                        ipatch.to_netcdf(
-                            file_path,
-                            engine="netcdf4",
-                        )
-                    elif self.save_filetype == "tif":
-                        # reconvert to dataset to attach band_wavelength and time
-                        # ds.attrs['band_names'] = [str(i) for i in ds.band.values]
-                        # compile filename
-                        file_path = Path(self.save_path).joinpath(
-                            f"{itime}_patch_{i}.tif"
-                        )
-                        # remove file if it already exists
-                        if os.path.exists(file_path):
-                            os.remove(file_path)
-                        # add band names as attribute
-                        ipatch.attrs["band_names"] = band_names
-                        # save patch to tiff
-                        ipatch.rio.to_raster(file_path)
-                        
-                    elif self.save_filetype == "np":
-                        # save as numpy files
-                        np.save(
-                            Path(self.save_path).joinpath(
-                                f"{itime}_radiance_patch_{i}"
-                            ),
-                            data,
-                        )
-                        np.save(
-                            Path(self.save_path).joinpath(
-                                f"{itime}_latitude_patch_{i}"
-                            ),
-                            ipatch.latitude.values,
-                        )
-                        np.save(
-                            Path(self.save_path).joinpath(
-                                f"{itime}_longitude_patch_{i}"
-                            ),
-                            ipatch.longitude.values,
-                        )
-                        np.save(
-                            Path(self.save_path).joinpath(
-                                f"{itime}_cloudmask_patch_{i}"
-                            ),
-                            ipatch.cloud_mask.values,
-                        )
-                    elif self.save_filetype == "npz":
-                        # save as numpy files
-                        np.savez_compressed(
-                            Path(self.save_path).joinpath(
-                                f"{itime}_radiance_patch_{i}"
-                            ),
-                            data,
-                        )
-                        np.savez_compressed(
-                            Path(self.save_path).joinpath(
-                                f"{itime}_latitude_patch_{i}"
-                            ),
-                            ipatch.latitude.values,
-                        )
-                        np.savez_compressed(
-                            Path(self.save_path).joinpath(
-                                f"{itime}_longitude_patch_{i}"
-                            ),
-                            ipatch.longitude.values,
-                        )
-                        np.savez_compressed(
-                            Path(self.save_path).joinpath(
-                                f"{itime}_cloudmask_patch_{i}"
-                            ),
-                            ipatch.cloud_mask.values,
-                        )
-                else:
-                    pass
-                    # logger.info(f'NaN count exceeded for patch {i} of timestamp {itime}.')
+                    # check if cloud and sea values are below threshold
+                    if check_cloud_sea_count(data, self.cloud_sea_cutoff):
+                        if self.save_filetype == "nc":
+                            # reconvert to dataset to attach band_wavelength and time
+                            ipatch = ipatch.to_dataset(name="Rad")
+                            ipatch = ipatch.assign_coords({"time": ds.time.values})
+                            ipatch = ipatch.assign_coords(
+                                {"band_wavelength": ds.band_wavelength.values}
+                            )
+                            # compile filename
+                            file_path = Path(self.save_path).joinpath(
+                                f"{itime}_patch_{i}.nc"
+                            )
+                            # remove file if it already exists
+                            if os.path.exists(file_path):
+                                os.remove(file_path)
+                            # save patch to netcdf
+                            ipatch.to_netcdf(
+                                file_path,
+                                engine="netcdf4",
+                            )
+                        elif self.save_filetype == "tif":
+                            # reconvert to dataset to attach band_wavelength and time
+                            # ds.attrs['band_names'] = [str(i) for i in ds.band.values]
+                            # compile filename
+                            file_path = Path(self.save_path).joinpath(
+                                f"{itime}_patch_{i}.tif"
+                            )
+                            # remove file if it already exists
+                            if os.path.exists(file_path):
+                                os.remove(file_path)
+                            # add band names as attribute
+                            ipatch.attrs["band_names"] = band_names
+                            # save patch to tiff
+                            ipatch.rio.to_raster(file_path)
+                            
+                        elif self.save_filetype == "np":
+                            # save as numpy files
+                            np.save(
+                                Path(self.save_path).joinpath(
+                                    f"{itime}_radiance_patch_{i}"
+                                ),
+                                data,
+                            )
+                            np.save(
+                                Path(self.save_path).joinpath(
+                                    f"{itime}_latitude_patch_{i}"
+                                ),
+                                ipatch.latitude.values,
+                            )
+                            np.save(
+                                Path(self.save_path).joinpath(
+                                    f"{itime}_longitude_patch_{i}"
+                                ),
+                                ipatch.longitude.values,
+                            )
+                            np.save(
+                                Path(self.save_path).joinpath(
+                                    f"{itime}_cloudmask_patch_{i}"
+                                ),
+                                ipatch.cloud_mask.values,
+                            )
+                        elif self.save_filetype == "npz":
+                            # save as numpy files
+                            np.savez_compressed(
+                                Path(self.save_path).joinpath(
+                                    f"{itime}_radiance_patch_{i}"
+                                ),
+                                data,
+                            )
+                            np.savez_compressed(
+                                Path(self.save_path).joinpath(
+                                    f"{itime}_latitude_patch_{i}"
+                                ),
+                                ipatch.latitude.values,
+                            )
+                            np.savez_compressed(
+                                Path(self.save_path).joinpath(
+                                    f"{itime}_longitude_patch_{i}"
+                                ),
+                                ipatch.longitude.values,
+                            )
+                            np.savez_compressed(
+                                Path(self.save_path).joinpath(
+                                    f"{itime}_cloudmask_patch_{i}"
+                                ),
+                                ipatch.cloud_mask.values,
+                            )
+                    else:
+                        pass
+                        # logger.info(f'NaN count exceeded for patch {i} of timestamp {itime}.')
 
 
 def prepatch(
@@ -248,6 +277,7 @@ def prepatch(
     patch_size: int = 256,
     stride_size: int = 256,
     nan_cutoff: float = 0.5,
+    cloud_sea_cutoff: float = 0.8,
     save_filetype: str = "nc",
 ):
     """
@@ -274,10 +304,25 @@ def prepatch(
         patch_size=patch_size,
         stride_size=stride_size,
         nan_cutoff=nan_cutoff,
+        cloud_sea_cutoff=cloud_sea_cutoff,
         save_filetype=save_filetype,
     )
+
+    files = prepatcher.nc_files
+    # chunk files
+    cpus = int(multiprocessing.cpu_count())
+    chunk_files = np.array_split(files, cpus)
+    chunk_list = [list(chunk) for chunk in chunk_files]
+
+    logger.info(f"Patching {len(chunk_files)} MSG chunks using {multiprocessing.cpu_count()} CPUs")
+
+    with multiprocessing.Pool(cpus) as p:
+        p.map(prepatcher.save_patches, chunk_list)
+        p.close()
+        p.join()
+
     logger.info(f"Patching Files...: {save_path}")
-    prepatcher.save_patches()
+    #prepatcher.save_patches() #for not multiprocessing
 
     logger.info(f"Finished Prepatching Script...!")
 
@@ -286,5 +331,5 @@ if __name__ == "__main__":
     """
     python scripts/pipeline/prepatch.py --read-path "/path/to/netcdf/file" --save-path /path/to/save/patches
     """
-    prepatch(read_path = '/mnt/nvme2tb/AND/debug_patcher/geoprocessed', save_path='/mnt/nvme2tb/AND/debug_patcher/patched', patch_size=32, stride_size=32, nan_cutoff=0.5, save_filetype='tif')
+    prepatch(read_path = '/mnt/nvme2tb/AND/debug_patcher/geoprocessed', save_path='/mnt/nvme2tb/AND/debug_patcher/patched', patch_size=32, stride_size=32, nan_cutoff=0.5, cloud_sea_cutoff = 0.8, save_filetype='tif')
  #   typer.run(prepatch)
