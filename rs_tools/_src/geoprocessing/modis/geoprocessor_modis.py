@@ -103,7 +103,7 @@ class MODISGeoProcessing:
         scn.load(channels, generate=False, calibration='radiance')
         
         # change to xarray data
-        ds = scn.to_xarray_dataset()  
+        ds = scn.to_xarray_dataset()
 
         # do core preprocess function (e.g. resample, add crs etc.)
         ds = self.preprocess_fn(ds) 
