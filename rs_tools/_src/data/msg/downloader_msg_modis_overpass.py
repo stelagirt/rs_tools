@@ -13,6 +13,8 @@ from typing import List
 from rs_tools import msg_download
 from rs_tools._src.data.modis import _check_earthdata_login, modis_granule_to_datetime, query_modis_timestamps
 from rs_tools._src.data.msg import MSGFileName
+from rs_tools._src.data.modis.downloader_aqua_day import MODISAquaDownload
+from rs_tools._src.data.modis.downloader_terra_day import MODISTerraDownload
 
 @dataclass
 class MSGDownload:
@@ -42,13 +44,14 @@ class MSGDownload:
     
 
 def download(
-        modis_product: str="MYD021KM", # TODO: Add advanced data product mapping
-        start_date: str="2010-01-01",
-        end_date: str="2010-01-01", 
+        modis_product: str="MOD021KM", # TODO: Add advanced data product mapping
+        start_date: str="2023-06-01",
+        end_date: str="2023-09-30",
         start_time: str="00:00:00", 
         end_time: str="23:59:00", 
-        save_dir: str='.', 
-        cloud_mask: bool = True
+        save_dir: str='/mnt/data8tb/fire_detection', 
+        cloud_mask: bool = True,
+        fire_mask: bool = True
 ):
     """
     Downloads MSG data including cloud mask 
@@ -61,6 +64,7 @@ def download(
         end_time (str): The end time of the data to download (format: 'HH:MM:SS')
         save_dir (str): The path to save the downloaded data
         cloud_mask (bool, optional): Whether to download the cloud mask data (default: True)
+        fire_mask (bool, optional): Whether to download the fire mask data (default: True)
 
     Returns:
         List[str]: List of downloaded file names
@@ -75,12 +79,52 @@ def download(
     # Query MODIS timestamps
     modis_results = query_modis_timestamps(
         short_name=modis_product,
-        bounding_box=(-70, -70, 70, 70), # Approximate field of view of MSG
+        bounding_box=(-10.019531, 30.22889, 46.617188, 49.012224), # I changed the AOI to North Africa -- South Europe -- TODO add it to beginning as command line argument (Stella)
         temporal=(start_datetime_str, end_datetime_str)
     )
     logger.info(f"Found {len(modis_results)} MODIS granules for MSG field-of-view and specified time period...")
     # Extract MODIS timestamps
     modis_timestamps = [modis_granule_to_datetime(x) for x in modis_results]
+
+     # **Download MODIS Data using AQUA Downloader**
+    modis_save_path = Path(save_dir).joinpath("modis")
+    modis_save_path.mkdir(parents=True, exist_ok=True)
+
+    logger.info("Initializing AQUA/MODIS Downloader...")
+    aqua_downloader = MODISAquaDownload(
+        start_date=start_date,
+        end_date=end_date,
+        start_time=start_time,
+        end_time=end_time,
+        save_dir=str(modis_save_path),
+        bounding_box=(-10.019531, 30.22889, 46.617188, 49.012224),  # I changed the AOI to North Africa -- South Europe -- TODO add it to beginning as command line argument (Stella)
+    )
+
+    terra_downloader = MODISTerraDownload(
+        start_date=start_date,
+        end_date=end_date,
+        start_time=start_time,
+        end_time=end_time,
+        save_dir=str(modis_save_path),
+        bounding_box=(-10.019531, 30.22889, 46.617188, 49.012224),  # I changed the AOI to North Africa -- South Europe -- TODO add it to beginning as command line argument (Stella)
+    )
+
+    if modis_product.startswith("MYD"):
+        modis_downloader = aqua_downloader
+    elif modis_product.startswith("MOD"):
+        modis_downloader = terra_downloader
+
+    logger.info("Downloading MODIS data...")
+    modis_filenames = modis_downloader.download()
+
+    if cloud_mask:
+        logger.info("Downloading AQUA Cloud Mask...")
+        modis_filenames = modis_downloader.download_cloud_mask()
+        logger.info("Done!")
+    if fire_mask:
+        logger.info("Downloading AQUA Fire Mask...")
+        modis_filenames = modis_downloader.download_fire_mask()
+        logger.info("Done!")
 
     # Initialize MSG Downloader
     logger.info("Initializing MSG Downloader...")
@@ -121,7 +165,7 @@ def download(
                 logger.error(f"Error: {e}")
                 logger.error("Could not add cloud mask timestamps to summary file...")
 
-        df.to_csv(Path(save_dir).joinpath(f"msg-modis-timestamps_{start_date}_{end_date}.csv"), index=False)
+        df.to_csv(Path(save_dir).joinpath(f"msg-{modis_product}-timestamps_{start_date}_{end_date}.csv"), index=False)
 
     logger.info("Done!")
     logger.info("Finished MSG Downloading Script...")
