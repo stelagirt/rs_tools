@@ -83,7 +83,8 @@ def download(
         end_time: str = "21:00:00",
         save_dir: str = "./data/",
         region: str = "-130 -15 -90 5",
-        cloud_mask: bool = True
+        cloud_mask: bool = True,
+        fire_mask: bool = True
 ):
     """
     Downloads TERRA MODIS data including cloud mask
@@ -96,6 +97,7 @@ def download(
         save_dir (str): The directory path to save the downloaded files.
         region (str, optional): The geographic region to download files for in the format "min_lon min_lat max_lon max_lat".
         cloud_mask (bool, optional): Whether to download the cloud mask data (default: True).
+        fire_mask (bool, optional): Whether to download the fire mask data (default: True).
 
     Returns:
         None
@@ -117,6 +119,11 @@ def download(
     if cloud_mask:
         logger.info("Downloading TERRA Cloud Mask...")
         modis_filenames = dc_terra_download.download_cloud_mask()
+        logger.info("Done!")
+    if fire_mask:
+        logger.info("Downloading AQUA Fire Mask...")
+        modis_filenames = dc_terra_download.download_fire_mask()
+        #modis_filenames = dc_terra_download.download_geolocation()
         logger.info("Done!")
 
     logger.info("Finished TERRA Downloading Script...")

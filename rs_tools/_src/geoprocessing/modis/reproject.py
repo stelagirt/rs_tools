@@ -1,7 +1,9 @@
 import xarray as xr
 import rioxarray
 from pyproj import CRS
+import os
 
+os.environ["PROJ_LIB"] = "/usr/share/proj"
 
 def add_modis_crs(ds: xr.Dataset) -> xr.Dataset:
     """

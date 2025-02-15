@@ -5,13 +5,13 @@ import xarray as xr
 
 # TODO: To be moved to Earth System Datacube Tools
 def convert_lat_lon_to_x_y(crs: str, lon: list[float], lat: list[float]) -> Tuple[float, float]:
-    transformer = Transformer.from_crs("epsg:4326", crs, always_xy=True)
+    transformer = Transformer.from_crs("+proj=latlon", crs, always_xy=True)
     x, y = transformer.transform(lon, lat)
     return x, y
 
 
 def convert_x_y_to_lat_lon(crs: str, x: list[float], y: list[float]) -> Tuple[float, float]:
-    transformer = Transformer.from_crs(crs, "epsg:4326", always_xy=True)
+    transformer = Transformer.from_crs(crs, "+proj=latlon", always_xy=True)
     lon, lat = transformer.transform(x, y)
     return lon, lat
 

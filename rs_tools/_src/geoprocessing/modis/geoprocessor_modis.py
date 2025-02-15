@@ -319,5 +319,5 @@ if __name__ == '__main__':
     """
     #typer.run(geoprocess)
     geoprocess(satellite = "aqua",
-        read_path =  "/mnt/seviri/aggelos_test_clouds/test_new_modis/data",
-        save_path =  "//mnt/seviri/aggelos_test_clouds/test_new_modis/data/geoprocessed")
+        read_path =  "/mnt/data8tb/fire_detection/modis/L1b",
+        save_path =  "/mnt/data8tb/fire_detection/modis/geoprocessed")

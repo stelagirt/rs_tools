@@ -75,13 +75,30 @@ class MODISAquaDownload:
             identifier= "14"
             )
         return aqua_files
+    
+    def download_geolocation(self) -> List[str]:
+        aqua_files = modis_download(
+            start_date=self.start_date,
+            end_date=self.end_date,
+            start_time=self.start_time, 
+            end_time=self.end_time,
+            day_step=1,
+            satellite="Aqua",
+            save_dir=Path(self.save_dir).joinpath("GEO"),
+            processing_level='L1a',
+            resolution="1KM",
+            bounding_box=self.bounding_box,
+            day_night_flag="day",
+            identifier= "03"
+            )
+        return aqua_files
 
 
 def download(
         start_date: str = "2020-10-01", 
         end_date: str = "2020-10-01",
-        start_time: str = "14:00:00",
-        end_time: str = "21:00:00",
+        start_time: str = "09:00:00",
+        end_time: str = "23:00:00",
         save_dir: str = "./data/",
         region: str = "-130 -15 -90 5",
         cloud_mask: bool = True,
@@ -103,7 +120,7 @@ def download(
     Returns:
         None
     """
-    bounding_box = tuple(map(lambda x: int(x), region.split(" ")))
+    bounding_box = tuple(map(lambda x: float(x), region.split(" ")))
     # Initialize AQUA Downloader
     logger.info("Initializing AQUA Downloader...")
     dc_aqua_download = MODISAquaDownload(
@@ -124,6 +141,7 @@ def download(
     if fire_mask:
         logger.info("Downloading AQUA Fire Mask...")
         modis_filenames = dc_aqua_download.download_fire_mask()
+        #modis_filenames = dc_aqua_download.download_geolocation()
         logger.info("Done!")
 
     logger.info("Finished AQUA Downloading Script...")

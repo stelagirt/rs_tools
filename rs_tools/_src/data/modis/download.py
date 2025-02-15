@@ -103,6 +103,8 @@ def modis_download(
         data_product = f"{satellite_code}{identifier}_{processing_level}"
     elif processing_level == 'L2' and identifier == '14': #for active fires
         data_product = f"{satellite_code}{identifier}"
+    elif processing_level == 'L1a' and identifier == '03': #for geolocation
+        data_product = f"{satellite_code}{identifier}"
     else:
         raise ValueError("Incorrect processing level, downloader only implemented for 'L1b' and 'L2'")
     
@@ -231,7 +233,7 @@ def _check_netcdf4_backend() -> bool:
 
 def _check_input_processing_level(processing_level: str) -> bool:
     """checks processing level for MODIS data"""
-    if processing_level in ["L1b", "L2"]:
+    if processing_level in ["L1b", "L2", "L1a"]:
         return True
     else:
         msg = "Unrecognized processing level"
@@ -239,7 +241,7 @@ def _check_input_processing_level(processing_level: str) -> bool:
         raise ValueError(msg)
     
 def _check_identifier(identifier: str) -> bool:
-    if identifier in ["02", "35", "14"]:
+    if identifier in ["02", "35", "14", "03"]:
         return True
     else:
         msg = "Unrecognized data identifier"
@@ -270,7 +272,7 @@ def _check_resolution(resolution: str) -> str:
     
 def _check_data_product_name(data_product: str) -> bool:
     if data_product in ['MOD021KM', 'MOD02HKM', 'MOD02QKM', 'MYD021KM', 'MYD02HKM', 'MYD02QKM',
-                        'MOD35_L2', 'MYD35_L2', 'MOD14', 'MYD14']:
+                        'MOD35_L2', 'MYD35_L2', 'MOD14', 'MYD14', 'MOD03', 'MYD03']:
         return True
     else:
         msg = "Unrecognized data product"

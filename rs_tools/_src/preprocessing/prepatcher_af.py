@@ -116,27 +116,9 @@ class PrePatcher:
             pbar.set_description(f"Processing: {itime}")
             # open dataset
             ds = xr.open_dataset(ifile, engine="netcdf4")
-
-            if self.save_filetype == "tif":
-                # concatenate variables
-                ds_temp = xr.concat(
-                    [ds.cloud_mask, ds.latitude, ds.longitude], dim="band"
-                )
-                # name data variables "Rad"
-                ds_temp = ds_temp.to_dataset(name="Rad")
-                ds_temp = ds_temp.drop(["cloud_mask", "latitude", "longitude"])
-                ds_temp = ds_temp.assign_coords(
-                    band=["cloud_mask", "latitude", "longitude"]
-                )
-                # merge with original dataset
-                ds = xr.merge([ds_temp.Rad, ds.Rad])
-                # store band names to be attached to da later
-                band_names = [str(i) for i in ds.band.values]
-                del ds_temp
-                gc.collect()
                 
             # extract radiance data array
-            da = ds.Rad
+            da = ds.fires
             # define patch parameters
             patches = dict(x=self.patch_size, y=self.patch_size)
             strides = dict(x=self.stride_size, y=self.stride_size)
@@ -153,11 +135,7 @@ class PrePatcher:
                 if _check_nan_count(data, self.nan_cutoff):
                     if self.save_filetype == "nc":
                         # reconvert to dataset to attach band_wavelength and time
-                        ipatch = ipatch.to_dataset(name="Rad")
-                        ipatch = ipatch.assign_coords({"time": ds.time.values})
-                        ipatch = ipatch.assign_coords(
-                            {"band_wavelength": ds.band_wavelength.values}
-                        )
+                        ipatch = ipatch.to_dataset(name="fire")
                         # compile filename
                         file_path = Path(self.save_path).joinpath(
                             f"{itime}_patch_{i}.nc"
@@ -180,8 +158,6 @@ class PrePatcher:
                         # remove file if it already exists
                         if os.path.exists(file_path):
                             os.remove(file_path)
-                        # add band names as attribute
-                        ipatch.attrs["band_names"] = band_names
                         # save patch to tiff
                         ipatch.rio.to_raster(file_path)
                         
@@ -189,54 +165,17 @@ class PrePatcher:
                         # save as numpy files
                         np.save(
                             Path(self.save_path).joinpath(
-                                f"{itime}_radiance_patch_{i}"
+                                f"{itime}_af_patch_{i}"
                             ),
                             data,
-                        )
-                        np.save(
-                            Path(self.save_path).joinpath(
-                                f"{itime}_latitude_patch_{i}"
-                            ),
-                            ipatch.latitude.values,
-                        )
-                        np.save(
-                            Path(self.save_path).joinpath(
-                                f"{itime}_longitude_patch_{i}"
-                            ),
-                            ipatch.longitude.values,
-                        )
-                        np.save(
-                            Path(self.save_path).joinpath(
-                                f"{itime}_cloudmask_patch_{i}"
-                            ),
-                            ipatch.cloud_mask.values,
                         )
                     elif self.save_filetype == "npz":
                         # save as numpy files
                         np.savez_compressed(
                             Path(self.save_path).joinpath(
-                                f"{itime}_radiance_patch_{i}"
+                                f"{itime}_af_patch_{i}"
                             ),
-                            data,
-                        )
-                        np.savez_compressed(
-                            Path(self.save_path).joinpath(
-                                f"{itime}_latitude_patch_{i}"
-                            ),
-                            ipatch.latitude.values,
-                        )
-                        np.savez_compressed(
-                            Path(self.save_path).joinpath(
-                                f"{itime}_longitude_patch_{i}"
-                            ),
-                            ipatch.longitude.values,
-                        )
-                        np.savez_compressed(
-                            Path(self.save_path).joinpath(
-                                f"{itime}_cloudmask_patch_{i}"
-                            ),
-                            ipatch.cloud_mask.values,
-                        )
+                            data,)
                 else:
                     pass
                     # logger.info(f'NaN count exceeded for patch {i} of timestamp {itime}.')

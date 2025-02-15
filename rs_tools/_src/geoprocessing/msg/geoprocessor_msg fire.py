@@ -25,6 +25,7 @@ from datetime import datetime
 from functools import partial
 import dask
 import warnings
+from pyresample import create_area_def
 load_dotenv()
 
 
@@ -113,7 +114,7 @@ class MSGGeoProcessing:
             lon_bnds = (self.region[0], self.region[2])
             lat_bnds = (self.region[1], self.region[3])
             # convert lat lon bounds to x y (in meters)
-            x_bnds, y_bnds = convert_lat_lon_to_x_y(ds.rio.crs, lon=lon_bnds, lat=lat_bnds, )
+            x_bnds, y_bnds = convert_lat_lon_to_x_y(ds.rio.crs, lon=lon_bnds, lat=lat_bnds,)
             # check that region is within the satellite field of view
             # compile satellite FOV
             satellite_FOV = (min(ds.x.values), min(ds.y.values), max(ds.x.values), max(ds.y.values))
@@ -159,7 +160,15 @@ class MSGGeoProcessing:
         channels = [x for x in scn.available_dataset_names() if x!='HRV']
         assert len(channels) == 11, "Number of channels is not 11"
 
-        scn.load(channels, generate=False, calibration='radiance')
+        lon_bnds = (self.region[0], self.region[2])
+        lat_bnds = (self.region[1], self.region[3])
+
+        area_def = create_area_def('my_area',
+                           {'proj': 'longlat', 'datum': 'WGS84'},
+                           area_extent=[-10.019531, 30.22889, 46.617188, 49.012224],
+                           resolution=0.027,
+                           units='degrees',
+                           description='Gloxx   bal degree lat-lon grid')
         
         # change to xarray data
         ds = scn.to_xarray()
@@ -391,7 +400,6 @@ if __name__ == '__main__':
     python geoprocessor_msg.py --read-path "/home/data" --save-path /home/data/msg/geoprocessed --resolution 2000 --region (-100, -10, -90, 10)
     """
     #typer.run(geoprocess)
-    
     read_path = "/mnt/data8tb/fire_detection/msg"
     save_path = "/mnt/data8tb/fire_detection/msg/geoprocessed"
     region = "-10.019531 30.22889 46.617188 49.012224"
