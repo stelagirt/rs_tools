@@ -152,3 +152,8 @@ datasets/*
 *.txt
 *.nc
 *.tif
+*.shp
+*.shx
+*.prj
+*.dbf
+*.cpg

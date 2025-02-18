@@ -42,7 +42,7 @@ def _check_filetype(file_type: str) -> bool:
         raise ValueError(msg)
 
 
-def _check_nan_count(arr: np.array, nan_cutoff: float) -> bool:
+def _check_fire_count(arr: np.array, fire_cutoff: float) -> bool:
     """
     Check if the number of NaN values in the given array is below a specified cutoff.
 
@@ -54,14 +54,8 @@ def _check_nan_count(arr: np.array, nan_cutoff: float) -> bool:
         bool: True if the number of NaN values is below the cutoff, False otherwise.
     """
     # count nans in dataset
-    nan_count = int(np.count_nonzero(np.isnan(arr)))
-    # get total pixel count
-    total_count = int(arr.size)
-    # check if nan_count is within allowed cutoff
-
-    pct_nan = nan_count / total_count
-
-    if pct_nan <= nan_cutoff:
+    fire_count = int(np.count_nonzero(arr))
+    if fire_count >= fire_cutoff:
         return True
     else:
         return False
@@ -77,7 +71,7 @@ class PrePatcher:
         save_path (str): The path to save the patches.
         patch_size (int): The size of each patch.
         stride_size (int): The stride size for generating patches.
-        nan_cutoff (float): The cutoff value for allowed NaN count in a patch.
+        fire_cutoff (float): The cutoff value for minimum fire count in a patch.
         save_filetype (str): The file type to save patches as. Options are [nc, np, npz, tif].
 
     Methods:
@@ -89,7 +83,7 @@ class PrePatcher:
     save_path: str
     patch_size: int
     stride_size: int
-    nan_cutoff: float
+    fire_cutoff: float
     save_filetype: str
 
     @property
@@ -118,7 +112,15 @@ class PrePatcher:
             ds = xr.open_dataset(ifile, engine="netcdf4")
                 
             # extract radiance data array
-            da = ds.fires
+            if isinstance(ds, xr.Dataset):
+                try:
+                    da = ds.fires
+                except:
+                    if "__xarray_dataarray_variable__" in ds:
+                        ds = ds.rename({"__xarray_dataarray_variable__": "fires"})
+                        da = ds.fires
+            else:
+                da = ds
             # define patch parameters
             patches = dict(x=self.patch_size, y=self.patch_size)
             strides = dict(x=self.stride_size, y=self.stride_size)
@@ -130,9 +132,9 @@ class PrePatcher:
                 os.makedirs(self.save_path)
 
             for i, ipatch in tqdm(enumerate(patcher), total=len(patcher)):
-                data = ipatch.data  # extract data
+                data = ipatch # extract data
                 # logger.info(f'stride size {self.stride_size} ')
-                if _check_nan_count(data, self.nan_cutoff):
+                if _check_fire_count(data, self.fire_cutoff):
                     if self.save_filetype == "nc":
                         # reconvert to dataset to attach band_wavelength and time
                         ipatch = ipatch.to_dataset(name="fire")
@@ -186,7 +188,7 @@ def prepatch(
     save_path: str = "./",
     patch_size: int = 256,
     stride_size: int = 256,
-    nan_cutoff: float = 0.5,
+    fire_cutoff: float = 1,
     save_filetype: str = "nc",
 ):
     """
@@ -196,7 +198,7 @@ def prepatch(
         save_path (str, optional): The path to save the extracted patches. Defaults to "./".
         patch_size (int, optional): The size of each patch. Defaults to 256.
         stride_size (int, optional): The stride size for patch extraction. Defaults to 256.
-        nan_cutoff (float): The cutoff value for allowed NaN count in a patch. Defaults to 0.1.
+        fire_cutoff (float): The cutoff value for minimum fire count pixels in a patch. Defaults to 1.
         save_filetype (str, optional): The file type to save patches as. Options are [nc, np]
 
     Returns:
@@ -212,7 +214,7 @@ def prepatch(
         save_path=save_path,
         patch_size=patch_size,
         stride_size=stride_size,
-        nan_cutoff=nan_cutoff,
+        fire_cutoff=fire_cutoff,
         save_filetype=save_filetype,
     )
     logger.info(f"Patching Files...: {save_path}")
@@ -225,5 +227,5 @@ if __name__ == "__main__":
     """
     python scripts/pipeline/prepatch.py --read-path "/path/to/netcdf/file" --save-path /path/to/save/patches
     """
-    #prepatch(read_path = '/mnt/nvme2tb/AND/debug_patcher/geoprocessed', save_path='/mnt/nvme2tb/AND/debug_patcher/patched', patch_size=32, stride_size=32, nan_cutoff=0.5, save_filetype='tif')
-    typer.run(prepatch)
+    prepatch(read_path = '/mnt/data8tb/fire_detection/af_nasa_geoprocessed/2023/', save_path='/mnt/data8tb/fire_detection/af_nasa_patched/2023/', patch_size=32, stride_size=32, fire_cutoff=1, save_filetype='tif')
+    #typer.run(prepatch)
