@@ -227,5 +227,5 @@ if __name__ == "__main__":
     """
     python scripts/pipeline/prepatch.py --read-path "/path/to/netcdf/file" --save-path /path/to/save/patches
     """
-    prepatch(read_path = '/mnt/data8tb/fire_detection/af_nasa_geoprocessed/2023/', save_path='/mnt/data8tb/fire_detection/af_nasa_patched/2023/', patch_size=32, stride_size=32, fire_cutoff=1, save_filetype='tif')
+    prepatch(read_path = '/mnt/data8tb/fire_detection/datasets/pointcloud_5/geoprocessed_af', save_path='/mnt/data8tb/fire_detection/datasets/pointcloud_5/masks', patch_size=32, stride_size=32, fire_cutoff=1, save_filetype='tif')
     #typer.run(prepatch)

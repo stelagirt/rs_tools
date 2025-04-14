@@ -157,3 +157,5 @@ datasets/*
 *.prj
 *.dbf
 *.cpg
+*.csv
+*.qmd

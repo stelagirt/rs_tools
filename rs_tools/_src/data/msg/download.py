@@ -409,7 +409,13 @@ def main(input: str):
     print(input)
 
 if __name__ == '__main__':
-    typer.run(msg_download)
+    #typer.run(msg_download)
+    start_date = '2015-05-01' 
+    end_date = '2015-09-30'
+    time_step = '00:15:00' 
+    save_dir = '/mnt/data8tb/msg_2015/CM'
+    instrument = 'CLM'
+    msg_download(start_date=start_date, end_date=end_date, time_step = time_step, save_dir= save_dir, instrument = instrument)
 
     """
     # =========================

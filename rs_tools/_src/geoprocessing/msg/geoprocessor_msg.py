@@ -21,12 +21,11 @@ from rs_tools._src.geoprocessing.utils import check_sat_FOV
 from rs_tools._src.geoprocessing.match import match_timestamps
 from rs_tools._src.geoprocessing.msg import MSG_WAVELENGTHS
 import pandas as pd
-from datetime import datetime 
+from datetime import datetime
 from functools import partial
 import dask
 import warnings
 load_dotenv()
-
 
 dask.config.set(**{'array.slicing.split_large_chunks': False})
 warnings.filterwarnings('ignore', category=FutureWarning)
@@ -390,9 +389,9 @@ if __name__ == '__main__':
     # =========================
     python geoprocessor_msg.py --read-path "/home/data" --save-path /home/data/msg/geoprocessed --resolution 2000 --region (-100, -10, -90, 10)
     """
-    #typer.run(geoprocess)
+    typer.run(geoprocess)
     
-    read_path = "/mnt/data8tb/fire_detection/msg"
-    save_path = "/mnt/data8tb/fire_detection/msg/geoprocessed"
-    region = "-10.019531 30.22889 46.617188 49.012224"
-    geoprocess(read_path= read_path, save_path= save_path, region= region)
+    #read_path = "/mnt/data8tb/fire_detection/msg"
+    #save_path = "/mnt/data8tb/fire_detection/msg/geoprocessed"
+    #region = "-10.019531 30.22889 46.617188 49.012224"
+    #geoprocess(read_path= read_path, save_path= save_path, region= region)
