@@ -159,3 +159,4 @@ datasets/*
 *.cpg
 *.csv
 *.qmd
+*zip

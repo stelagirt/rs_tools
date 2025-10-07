@@ -95,14 +95,14 @@ class MODISAquaDownload:
 
 
 def download(
-        start_date: str = "2020-10-01", 
-        end_date: str = "2020-10-01",
+        start_date: str = "2024-06-01", 
+        end_date: str = "2024-06-01",
         start_time: str = "09:00:00",
-        end_time: str = "23:00:00",
-        save_dir: str = "./data/",
-        region: str = "-130 -15 -90 5",
+        end_time: str = "21:00:00",
+        save_dir: str = "/mnt/data8tb/fire_detection/modis/",
+        region: str = "-10.019531 30.22889 46.617188 49.012224",
         cloud_mask: bool = True,
-        fire_mask: bool = True
+        fire_mask: bool = False
 ):
     """
     Downloads AQUA MODIS data including cloud mask
@@ -121,6 +121,7 @@ def download(
         None
     """
     bounding_box = tuple(map(lambda x: float(x), region.split(" ")))
+    print(f"Bounding box is {bounding_box}")
     # Initialize AQUA Downloader
     logger.info("Initializing AQUA Downloader...")
     dc_aqua_download = MODISAquaDownload(
@@ -132,7 +133,7 @@ def download(
         bounding_box=bounding_box,
     )
     logger.info("Downloading AQUA Data...")
-    modis_filenames = dc_aqua_download.download()
+    #modis_filenames = dc_aqua_download.download()
     logger.info("Done!")
     if cloud_mask:
         logger.info("Downloading AQUA Cloud Mask...")
