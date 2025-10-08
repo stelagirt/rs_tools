@@ -148,4 +148,14 @@ def download(
     logger.info("Finished AQUA Downloading Script...")
 
 if __name__ == '__main__':
-    typer.run(download)
+    download(
+        start_date = "2024-06-01", 
+        end_date = "2024-06-01",
+        start_time = "09:00:00",
+        end_time = "21:00:00",
+        save_dir  = "/mnt/data8tb/fire_detection/modis/",
+        region  = "-10.019531 30.22889 46.617188 49.012224",
+        cloud_mask  = True,
+        fire_mas = False
+)
+    #typer.run(download)
